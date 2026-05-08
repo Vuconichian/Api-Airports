@@ -1,0 +1,53 @@
+
+services:
+  # Base de Datos Principal
+  mongo-db:
+    image: mongo:latest
+    container_name: mongo-airports
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # Redis para cálculos GEO
+  redis-geo:
+    image: redis:alpine
+    container_name: redis-geo
+    ports:
+      - "6379:6379"
+
+  # Redis para Ranking de Popularidad
+  redis-pop:
+    image: redis:alpine
+    container_name: redis-pop
+    ports:
+      - "6380:6379" # Mapeamos el puerto 6380 del host al 6379 del contenedor
+
+  # Tu API (Backend)
+  backend:
+    build: ./backend
+    container_name: airport-api
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=mongodb://mongo-db:27017/airport_db
+      - REDIS_GEO_HOST=redis-geo
+      - REDIS_POP_HOST=redis-pop
+      - REDIS_GEO_PORT=6379
+      - REDIS_POP_PORT=6379
+    depends_on:
+      - mongo-db
+      - redis-geo
+      - redis-pop
+
+  # Frontend (opcional meterlo en docker ahora)
+  frontend:
+    image: nginx:alpine
+    container_name: airport-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+
+volumes:
+  mongo_data:
